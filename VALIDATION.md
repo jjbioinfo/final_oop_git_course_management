@@ -25,8 +25,11 @@ The log-file failure is injected with `unittest.mock`; it is a controlled local
 failure check. The email validation is a conservative format policy, not a DNS,
 mailbox-ownership, or complete email-standard validation.
 
-GitHub Actions is configured for Python 3.10 and 3.13. Its live result will be
-recorded after publication; local testing alone does not establish those CI results.
+GitHub Actions passed on Python 3.10 and 3.13 for commit
+`1dda329348ea8a6def9643a685b153efe7cdd435`: both the 14 test groups and the
+demonstration succeeded in each environment. See the [verified run](https://github.com/jjbioinfo/course-management-system/actions/runs/38470322061).
+Later documentation commits trigger the same checks; their results remain visible
+in the repository Actions tab and Pull Request.
 
 ## Limitations
 
