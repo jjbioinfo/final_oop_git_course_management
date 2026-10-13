@@ -42,6 +42,7 @@ class Enrollment:
 
     def complete(self) -> None:
         """Mark this enrollment as completed."""
+        # Repeating complete() is harmless: the final status remains Completed.
         self._status = "Completed"
         logger.info(
             f"Enrollment completed: student_id={self.student.user_id!r}, "

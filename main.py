@@ -6,13 +6,13 @@ if __package__:
     from .course import Course
     from .exceptions import CourseManagementError
     from .logging_config import configure_logging
-    from .platform import CourseManagementSystem
+    from .course_management import CourseManagementSystem
     from .user import Mentor, Student, User
 else:
     from course import Course
     from exceptions import CourseManagementError
     from logging_config import configure_logging
-    from platform import CourseManagementSystem
+    from course_management import CourseManagementSystem
     from user import Mentor, Student, User
 
 logger = logging.getLogger(__name__)
@@ -20,13 +20,15 @@ logger = logging.getLogger(__name__)
 
 def main() -> int:
     """Create sample records and demonstrate every major operation."""
-    configure_logging()
-    logger.info(f"Course Management System started")
-
     try:
+        configure_logging()
+        logger.info("Course Management System started")
         system = CourseManagementSystem()
 
-        student1 = Student("S101", "Asha", "asha@example.com")
+        # A class method constructs the calling class and reuses its validation.
+        student1 = Student.from_dict(
+            {"user_id": "S101", "name": "Asha", "email": "asha@example.com"}
+        )
         student2 = Student("S102", "Rahul", "rahul@example.com")
         mentor = Mentor("M101", "Maya", "maya@example.com", "Python")
 
@@ -62,15 +64,23 @@ def main() -> int:
         print(f"Total users created: {User.get_total_users()}")
         print(f"Valid email example: {User.is_valid_email('learner@example.com')}")
 
-        logger.info(f"Course Management System demonstration completed")
+        print("\nEXPECTED ERROR: DUPLICATE ENROLLMENT")
+        try:
+            system.enroll_student("S101", "C101")
+        except CourseManagementError as error:
+            # A known business error is shown clearly; the valid records remain intact.
+            print(f"Handled correctly: {error}")
+            logger.info("Demonstration handled the expected duplicate enrollment")
+
+        logger.info("Course Management System demonstration completed")
         return 0
     except (CourseManagementError, TypeError, ValueError) as error:
-        logger.error(f"Course-management operation failed: {error}", exc_info=True)
+        logger.error("Course-management operation failed: %s", error)
         print(f"Operation failed: {error}")
         return 1
     except Exception as error:
-        logger.critical(f"Unexpected application failure: {error}", exc_info=True)
-        print(f"Application error: {error}")
+        logger.exception("Unexpected application failure")
+        print("An unexpected error occurred. See the log for details.")
         return 1
 
 
