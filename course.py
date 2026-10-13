@@ -65,6 +65,7 @@ class Course:
         """Add a student while protecting duplicates and course capacity."""
         if not isinstance(student, Student):
             raise TypeError("only a Student object can enroll")
+        # Check every rule before changing the stored enrollment set.
         if student.user_id in self._student_ids:
             raise DuplicateRecordError("student is already enrolled in this course")
         if self.enrollment_count >= self.capacity:

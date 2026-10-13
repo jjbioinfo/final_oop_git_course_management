@@ -3,7 +3,7 @@
 from .course import Course
 from .enrollment import Enrollment
 from .logging_config import configure_logging
-from .platform import CourseManagementSystem
+from .course_management import CourseManagementSystem
 from .user import Mentor, Student, User
 
 __all__ = [

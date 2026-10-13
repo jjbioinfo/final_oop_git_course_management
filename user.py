@@ -1,6 +1,7 @@
 """Abstract User class and concrete Student and Mentor classes."""
 
 import logging
+import re
 from abc import ABC, abstractmethod
 
 if __package__:
@@ -17,14 +18,14 @@ class User(ABC):
     _total_users = 0
 
     def __init__(self, user_id: str | int, name: str, email: str) -> None:
-        logger.debug(
-            f"Creating user: user_id={user_id!r}, name={name!r}, email={email!r}"
-        )
+        # Log identifiers, not names or email addresses.
+        logger.debug("Creating user: user_id=%r", user_id)
         cleaned_email = require_text(email, "email")
         if not self.is_valid_email(cleaned_email):
-            logger.warning(f"Invalid email rejected: email={cleaned_email!r}")
+            logger.warning("User creation rejected: invalid email format")
             raise ValueError("email address is invalid")
 
+        # Validate before increasing the count. A rejected user is not counted.
         self._user_id = require_identifier(user_id, "user ID")
         self._name = require_text(name, "name")
         self._email = cleaned_email
@@ -48,16 +49,44 @@ class User(ABC):
 
     @staticmethod
     def is_valid_email(email: object) -> bool:
-        """Return True for a basic valid-looking email address."""
-        if not isinstance(email, str) or email.count("@") != 1:
+        """Check a conservative ASCII email format, not mailbox ownership."""
+        # A static method needs only its argument, not self or cls.
+        if not isinstance(email, str) or len(email) > 254 or email.count("@") != 1:
             return False
         local_part, domain = email.split("@")
-        return bool(local_part and "." in domain and not domain.startswith("."))
+        if not 1 <= len(local_part) <= 64:
+            return False
+        if local_part.startswith(".") or local_part.endswith(".") or ".." in local_part:
+            return False
+        if re.fullmatch(r"[A-Za-z0-9._%+-]+", local_part) is None:
+            return False
+        labels = domain.split(".")
+        if len(labels) < 2:
+            return False
+        return all(
+            1 <= len(label) <= 63
+            and re.fullmatch(r"[A-Za-z0-9]+(?:[A-Za-z0-9-]*[A-Za-z0-9])?", label)
+            is not None
+            for label in labels
+        )
 
     @classmethod
     def get_total_users(cls) -> int:
-        """Return the total number of successfully created users."""
+        """Return successful User constructions across Student and Mentor."""
+        # The base class owns one shared counter; this is not a registration count.
         return User._total_users
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "User":
+        """Create the calling subclass from named fields, using normal validation."""
+        # Student.from_dict uses Student; Mentor.from_dict uses Mentor.
+        if not isinstance(data, dict):
+            raise TypeError("user data must be a dictionary")
+        try:
+            return cls(**data)
+        except (TypeError, ValueError):
+            logger.warning("Could not create %s from supplied fields", cls.__name__)
+            raise  # Preserve the error so the caller cannot mistake failure for success.
 
     def common_details(self) -> str:
         """Return details shared by every user role."""
@@ -76,6 +105,7 @@ class Student(User):
     """Platform user who can enroll in courses."""
 
     def __init__(self, user_id: str | int, name: str, email: str) -> None:
+        # super() reuses the common User validation and initialization.
         super().__init__(user_id, name, email)
         self._course_ids: set[str] = set()
         logger.info(f"Student created: user_id={self.user_id!r}")
@@ -83,6 +113,7 @@ class Student(User):
     @property
     def course_ids(self) -> tuple[str, ...]:
         """Return enrolled course IDs without exposing the mutable set."""
+        # A tuple prevents callers from modifying our internal set through this view.
         return tuple(sorted(self._course_ids))
 
     def enroll_in_course(self, course_id: str | int) -> None:
@@ -107,6 +138,7 @@ class Mentor(User):
         self, user_id: str | int, name: str, email: str, expertise: str
     ) -> None:
         validated_expertise = require_text(expertise, "expertise")
+        # super() reuses the common User validation and initialization.
         super().__init__(user_id, name, email)
         self._expertise = validated_expertise
         self._course_ids: set[str] = set()
@@ -120,6 +152,7 @@ class Mentor(User):
     @property
     def course_ids(self) -> tuple[str, ...]:
         """Return assigned course IDs without exposing the mutable set."""
+        # A tuple prevents callers from modifying our internal set through this view.
         return tuple(sorted(self._course_ids))
 
     def assign_course(self, course_id: str | int) -> None:
