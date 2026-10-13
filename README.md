@@ -9,11 +9,13 @@ third-party packages. It does not provide a database, website, or login system.
 
 ## Quick start
 
-Install Python 3.10 or newer and Git, then run:
+For the prepared local code, run `python main.py` and `python test_course_management.py`
+from this folder. For a published copy, install Python 3.10 or newer and Git,
+replace the two placeholders with your repository details, then run:
 
-```bash
-git clone https://github.com/jjbioinfo/course-management-system.git
-cd course-management-system
+```sh
+git clone https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPOSITORY_NAME.git
+cd YOUR_REPOSITORY_NAME
 python main.py
 python test_course_management.py
 ```
@@ -23,10 +25,6 @@ No `pip install` is needed. An existing Python virtual environment is fine.
 
 The demo prints users, courses, active/completed enrollments, and one deliberately
 handled duplicate-enrollment error. The tests finish with:
-
-```text
-Ran 14 test groups; failures=0
-```
 
 ## Features
 
@@ -44,17 +42,6 @@ Ran 14 test groups; failures=0
 
 A **class** defines a kind of object; an **instance** is one particular object.
 An **attribute** stores information; a **method** performs an operation.
-
-```text
-User (abstract shared parent)
-├── Student
-└── Mentor
-
-CourseManagementSystem
-├── registers User objects
-├── stores Course objects (each has a Mentor)
-└── creates Enrollment objects (one Student + one Course)
-```
 
 | File / class | Responsibility |
 |---|---|
@@ -128,12 +115,6 @@ except Exception:
 
 Expected output, apart from log messages:
 
-```text
-Student: Asha
-Course: Python OOP
-Status: Completed
-```
-
 Perform enrollment through `CourseManagementSystem.enroll_student()` so the
 student, course, and enrollment records are updated together. Lower-level model
 methods are implementation building blocks, not substitutes for that workflow.
@@ -161,7 +142,7 @@ printed and console logging continues. Generated logs are ignored by Git.
 
 ## Tests and validation
 
-```bash
+```sh
 python test_course_management.py
 ```
 
@@ -171,16 +152,6 @@ unchanged state after expected failures, independent instances, logging fallback
 and application exit codes. See [VALIDATION.md](VALIDATION.md) for the actual
 execution environment and results. GitHub Actions runs the suite on Python 3.10
 and 3.13 for pushes and Pull Requests.
-
-## Git/GitHub and submission
-
-Development uses meaningful commits, feature branches, a local merge, and a
-GitHub Pull Request. [git_workflow.sh](git_workflow.sh) contains safe commands to
-inspect the actual history and a commented recipe for a future feature.
-
-- [Public repository](https://github.com/jjbioinfo/course-management-system)
-- Repository, Pull Request, and video status: [SUBMISSION_LINKS.md](SUBMISSION_LINKS.md)
-- Recording walkthrough: [VIDEO_SCRIPT.md](VIDEO_SCRIPT.md)
 
 ## Scope and limitations
 
