@@ -1,129 +1,208 @@
 # Course Management System
 
-A modular command-line learning platform built with Python object-oriented
-programming. The system manages students, mentors, courses, and enrollments while
-demonstrating the principal OOP concepts required by the assignment.
+A small Python application that registers students and mentors, creates courses,
+and tracks enrollments. It demonstrates object-oriented programming (OOP) with
+clear comments, input checks, exceptions, logging, and automated tests.
+
+This is a beginner-friendly, in-memory command-line assignment. It runs without
+third-party packages. It does not provide a database, website, or login system.
+
+## Quick start
+
+Install Python 3.10 or newer and Git, then run:
+
+```bash
+git clone https://github.com/jjbioinfo/course-management-system.git
+cd course-management-system
+python main.py
+python test_course_management.py
+```
+
+Use `python3` instead of `python` if that is your computer's Python command.
+No `pip install` is needed. An existing Python virtual environment is fine.
+
+The demo prints users, courses, active/completed enrollments, and one deliberately
+handled duplicate-enrollment error. The tests finish with:
+
+```text
+Ran 14 test groups; failures=0
+```
 
 ## Features
 
-- Register students and mentors with unique IDs.
-- Create courses taught by registered mentors.
-- Enroll students while preventing duplicates and over-capacity enrollment.
-- Track active and completed enrollments.
-- Display role-specific student and mentor information.
-- Validate required data and report expected errors clearly.
-- Record application activity in `logs/course_management.log`.
+- Register students and mentors with unique user IDs.
+- Create courses with a registered mentor, duration, and capacity.
+- Accept string or integer IDs and normalize them consistently.
+- Reject missing records, duplicate enrollments, and full courses.
+- Mark enrollments completed; repeating completion is harmless.
+- Return student- or mentor-specific details through the same method.
+- Expose collection snapshots as tuples rather than mutable internal containers.
+- Handle expected errors with `try/except` and record events using `logging`.
+- Rotate log files and retain console logging if the log file is unavailable.
 
-## Architecture
+## Architecture and classes
+
+A **class** defines a kind of object; an **instance** is one particular object.
+An **attribute** stores information; a **method** performs an operation.
 
 ```text
-User (abstract)
+User (abstract shared parent)
 ├── Student
 └── Mentor
 
 CourseManagementSystem
-├── manages User objects
-├── manages Course objects
-└── creates Enrollment objects
-
-Enrollment
-└── connects one Student with one Course
+├── registers User objects
+├── stores Course objects (each has a Mentor)
+└── creates Enrollment objects (one Student + one Course)
 ```
 
-### Classes
-
-| Class | Responsibility |
+| File / class | Responsibility |
 |---|---|
-| `User` | Abstract parent containing common user data and behavior |
-| `Student` | Stores enrolled courses and student-specific output |
-| `Mentor` | Stores expertise and assigned courses |
-| `Course` | Stores course details, capacity, mentor, and students |
-| `Enrollment` | Represents and updates a student-course relationship |
-| `CourseManagementSystem` | Coordinates registration, courses, and enrollment |
+| `user.py` / `User` | Validate common user fields and require role-specific display behavior |
+| `user.py` / `Student` | Hold a student's enrolled course IDs |
+| `user.py` / `Mentor` | Hold expertise and assigned course IDs |
+| `course.py` / `Course` | Hold course information and enforce enrollment capacity |
+| `enrollment.py` / `Enrollment` | Connect a student to a course and track completion |
+| `course_management.py` / `CourseManagementSystem` | Coordinate registration, courses, and enrollments |
+| `validators.py` | Reuse small text, identifier, and integer checks |
+| `exceptions.py` | Define understandable business-error types |
+| `logging_config.py` | Configure console and rotating-file logs |
+| `main.py` | Run a complete demonstration and handle application failures |
+| `test_course_management.py` | Run success, boundary, invalid-input, and failure checks |
 
-## OOP concepts demonstrated
+The service module was renamed from `platform.py` to `course_management.py` to
+avoid hiding Python's own `platform` module. Use the new import shown below.
 
-- **Inheritance:** `Student` and `Mentor` inherit from `User`.
-- **Abstraction:** `User` inherits from `ABC`; `display_details()` is abstract.
-- **Encapsulation:** Internal collections use protected attributes and properties
-  return safe immutable tuples.
-- **Polymorphism:** The same `user.display_details()` call produces student or
-  mentor output according to the runtime object.
-- **Instance methods:** Objects register courses, enroll students, and complete
-  enrollments.
-- **Static method:** `User.is_valid_email()` validates an email without an object.
-- **Class method:** `User.get_total_users()` returns the shared user count.
+## Where each required OOP concept appears
 
-## Requirements
+| Concept | Meaning | Source example |
+|---|---|---|
+| Inheritance | Reuse and extend a parent class | `Student(User)` and `Mentor(User)` |
+| Encapsulation | Keep state and the rules for accessing it together | Internal `_course_ids`; public read-only `course_ids` property |
+| Polymorphism | The same operation can behave differently for different objects | Both roles implement `display_details()`; `main.py` calls it in one loop |
+| Abstraction | Expose a required interface while subclasses supply details | `User(ABC)` and `@abstractmethod display_details()` |
+| Instance method | Receives a particular object as `self` | `Enrollment.complete()` |
+| Static method | Receives no automatic object/class argument | `User.is_valid_email(email)` |
+| Class method | Receives the calling class as `cls` | `Student.from_dict(data)` and `Mentor.from_dict(data)` |
 
-- Python 3.10 or newer
-- No third-party Python packages
-- Git and GitHub CLI for the repository workflow
+`@property` lets a getter be read as `student.name`, without parentheses.
+Leading underscores mark internal implementation by convention; they are not a
+security barrier. Tuples protect the returned container, not every referenced
+object. See [OOP_GUIDE.md](OOP_GUIDE.md) for a simple code-reading walkthrough.
 
-## Installation
+## Usage example
 
-```bash
-git clone YOUR_PUBLIC_REPOSITORY_URL
-cd course-management-system
+Run this Python code from the project folder:
+
+```python
+import logging
+
+from course import Course
+from course_management import CourseManagementSystem
+from exceptions import CourseManagementError
+from logging_config import configure_logging
+from user import Mentor, Student
+
+logger = logging.getLogger(__name__)
+
+try:
+    configure_logging()
+    system = CourseManagementSystem()
+    student = Student.from_dict(
+        {"user_id": "S101", "name": "Asha", "email": "asha@example.com"}
+    )
+    mentor = Mentor("M101", "Maya", "maya@example.com", "Python")
+    system.register_user(student)
+    system.register_user(mentor)
+
+    course = Course("C101", "Python OOP", mentor, duration_weeks=8, capacity=30)
+    system.add_course(course)
+    enrollment = system.enroll_student("S101", "C101")
+    enrollment.complete()
+    print(enrollment.display_details())
+except (CourseManagementError, TypeError, ValueError) as error:
+    logger.error("Could not finish the operation: %s", error)
+except Exception:
+    logger.exception("Unexpected example failure")
 ```
 
-No package installation is required.
+Expected output, apart from log messages:
 
-## Usage
-
-Run the demonstration:
-
-```bash
-python main.py
+```text
+Student: Asha
+Course: Python OOP
+Status: Completed
 ```
 
-Run the test suite:
+Perform enrollment through `CourseManagementSystem.enroll_student()` so the
+student, course, and enrollment records are updated together. Lower-level model
+methods are implementation building blocks, not substitutes for that workflow.
+A completed enrollment remains in the roster and counts toward capacity; this
+project does not implement cancellation or seat reuse.
+
+## Exception handling and logging
+
+An **exception** reports a failed operation. A `try` block runs work that may
+fail; an `except` block handles a specified failure. A **logger** records events.
+
+- Models and validators raise `TypeError` or `ValueError` for invalid data.
+- Business rules raise `DuplicateRecordError`, `RecordNotFoundError`, or
+  `CourseFullError`, all derived from `CourseManagementError`.
+- Service operations catch known errors, log them, and re-raise them. They do
+  not return a misleading success value.
+- `main()` handles known failures and returns exit code 1. Unexpected exceptions
+  are logged with a traceback and a generic user message. Success returns 0.
+- Small read-only getters do not need repetitive `try/except` blocks; their
+  callers handle failures where recovery or reporting is meaningful.
+
+Logs go to the terminal and `logs/course_management.log`. The file rotates at
+approximately 1 MB, keeping three backups. If it cannot be opened, a warning is
+printed and console logging continues. Generated logs are ignored by Git.
+
+## Tests and validation
 
 ```bash
 python test_course_management.py
 ```
 
-Example code:
+The 14 groups cover the required OOP concepts, class factories, numeric/text ID
+normalization, malformed and missing inputs, duplicate and capacity rules,
+unchanged state after expected failures, independent instances, logging fallback,
+and application exit codes. See [VALIDATION.md](VALIDATION.md) for the actual
+execution environment and results. GitHub Actions runs the suite on Python 3.10
+and 3.13 for pushes and Pull Requests.
 
-```python
-from course import Course
-from platform import CourseManagementSystem
-from user import Mentor, Student
+## Git/GitHub and submission
 
-system = CourseManagementSystem()
-student = Student("S101", "Asha", "asha@example.com")
-mentor = Mentor("M101", "Maya", "maya@example.com", "Python")
+Development uses meaningful commits, feature branches, a local merge, and a
+GitHub Pull Request. [git_workflow.sh](git_workflow.sh) contains safe commands to
+inspect the actual history and a commented recipe for a future feature.
 
-system.register_user(student)
-system.register_user(mentor)
+- [Public repository](https://github.com/jjbioinfo/course-management-system)
+- Repository, Pull Request, and video status: [SUBMISSION_LINKS.md](SUBMISSION_LINKS.md)
+- Recording walkthrough: [VIDEO_SCRIPT.md](VIDEO_SCRIPT.md)
 
-course = Course("C101", "Python OOP", mentor, 8, 30)
-system.add_course(course)
-enrollment = system.enroll_student("S101", "C101")
-```
+## Scope and limitations
 
-## Git and GitHub workflow
+This is a tested educational CLI, not a deployed multi-user production service.
+Records live in memory and reset on exit. There is no authentication, persistent
+storage, concurrent transaction control, or recovery after process failure.
+The email check intentionally accepts a conservative ASCII subset; it neither
+covers every valid international email format nor proves mailbox ownership.
+`User.get_total_users()` counts successful object constructions during this
+process, including unregistered objects; it is not a persistent registered-user
+count. Registration itself is represented by `system.list_users()`.
 
-The `git_workflow.sh` file contains an unexecuted workflow that demonstrates:
+For a real deployment, requirements would need to cover persistence, access
+control, backups, concurrency, and operational monitoring. The provided tests do
+not certify those absent features.
 
-- Repository initialization
-- Feature branches
-- Meaningful commits
-- A local `--no-ff` merge
-- Pushing branches to a public GitHub repository
-- Creating and merging a Pull Request
-- Viewing the final commit graph
+## References
 
-Review the script before running it during the recorded demonstration.
-Use [`VIDEO_SCRIPT.md`](VIDEO_SCRIPT.md) as the recording checklist.
+- [Python classes and inheritance](https://docs.python.org/3/tutorial/classes.html)
+- [Abstract base classes](https://docs.python.org/3/library/abc.html)
+- [Exceptions](https://docs.python.org/3/tutorial/errors.html)
+- [Logging](https://docs.python.org/3/howto/logging.html)
 
-## Submission links
-
-- Public GitHub repository: `GENERATED-AFTER-RUNNING-THE-GIT-SCRIPT`
-- Pull Request: `GENERATED-AFTER-RUNNING-THE-GIT-SCRIPT`
-- YouTube video: `ADD-YOUTUBE-VIDEO-URL`
-
-## Limitations
-
-This learning project stores data in memory. Data is reset when the program ends,
-and no real learning platform or payment service is contacted.
+No license has been selected for redistribution; public visibility alone does
+not grant a software license.

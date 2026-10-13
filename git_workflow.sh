@@ -1,103 +1,31 @@
 #!/usr/bin/env bash
+# Run from this assignment's own repository. This file only inspects existing work.
+# Do not re-initialize or replay old commits when recording the video.
+set -euo pipefail
 
-# Complete Git and GitHub workflow for the final mini project.
-# This script is intentionally not executed during project creation.
-# Review it, authenticate GitHub CLI, and run it while recording the video.
-
-set -e
-
-REPOSITORY_NAME="course-management-system"
-
-echo "Step 1: Confirm GitHub authentication"
-gh auth status
-
-echo "Step 2: Initialize the repository"
-git init -b main
-git config user.name >/dev/null
-git config user.email >/dev/null
-git status
-
-echo "Step 3: Create the initial project-setup commit"
-git add \
-    .gitignore \
-    README.md \
-    VIDEO_SCRIPT.md \
-    exceptions.py \
-    git_workflow.sh \
-    logging_config.py \
-    validators.py
-git status
-git commit -m "Set up Course Management System project"
-
-echo "Step 4: Build the user models on a feature branch"
-git checkout -b feature/user-models
-git add user.py
-git commit -m "Add abstract User, Student, and Mentor models"
-git log --oneline --decorate -5
-
-echo "Step 5: Merge the user feature branch locally"
-git checkout main
-git merge --no-ff feature/user-models -m "Merge user models feature"
-
-echo "Step 6: Build course management on a second feature branch"
-git checkout -b feature/course-management
-git add course.py enrollment.py
-git commit -m "Add Course and Enrollment models"
-
-git add platform.py
-git commit -m "Add course-management service layer"
-
-git add main.py __init__.py
-git commit -m "Add complete application demonstration"
-
-git add test_course_management.py
-git commit -m "Add Course Management System tests"
-
-echo "Step 7: Demonstrate differences and inspect history"
-git diff main...feature/course-management
+git status --short --branch
+git branch --all
 git log --oneline --graph --all --decorate
-git status
 
-echo "Step 8: Run the application tests before publishing"
-python test_course_management.py
+# Show the actual local feature merge and the Pull Request merge in the graph.
+# Online inspection, after gh auth login:
+# gh repo view --web
+# gh pr list --state all
+# gh pr view PR_NUMBER
+# gh pr diff PR_NUMBER
 
-echo "Step 9: Create an empty public GitHub repository"
-gh repo create "$REPOSITORY_NAME" \
-    --public \
-    --source=. \
-    --remote=origin
-
-echo "Step 10: Push main and the Pull Request branch"
-git push -u origin main
-git push -u origin feature/course-management
-git remote -v
-
-echo "Step 11: Create the Pull Request"
-PR_URL=$(gh pr create \
-    --base main \
-    --head feature/course-management \
-    --title "Add complete course management functionality" \
-    --body "Implements Course, Enrollment, service-layer coordination, the application demonstration, and automated tests.")
-echo "Pull Request: $PR_URL"
-
-echo "Step 12: Inspect and merge the Pull Request"
-gh pr view "$PR_URL"
-gh pr merge "$PR_URL" --merge --delete-branch
-
-echo "Step 13: Update the local main branch"
-git checkout main
-git pull --ff-only origin main
-
-echo "Step 14: Save repository and Pull Request URLs"
-REPOSITORY_URL=$(gh repo view --json url --jq .url)
-printf '# Submission Links\n\n- Repository: %s\n- Pull Request: %s\n' \
-    "$REPOSITORY_URL" "$PR_URL" > SUBMISSION_LINKS.md
-git add SUBMISSION_LINKS.md
-git commit -m "Add submission links"
-git push origin main
-
-echo "Step 15: Display final status and history"
-git status
-git log --oneline --graph --all --decorate
-echo "Repository: $REPOSITORY_URL"
-echo "Pull Request: $PR_URL"
+# Example future development cycle (copy one command at a time; not run here):
+# git switch main
+# git pull --ff-only
+# git switch -c codex/your-feature
+# ... edit the relevant source and tests ...
+# python test_course_management.py
+# git diff --check
+# git add path/to/changed_file.py path/to/changed_test.py
+# git commit -m "Describe the specific change and its purpose"
+# git push -u origin codex/your-feature
+# gh pr create --base main --head codex/your-feature --title "Your feature" --body-file pr-body.md
+# ... review the diff and wait for automated checks ...
+# gh pr merge PR_NUMBER --merge
+# git switch main
+# git pull --ff-only
